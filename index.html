@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang ="en">
+<head>  
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4-Way BSA LRU vs MRU</title>
+    <! place whatever the css is here !>
+</head>    
+<body>
+    <header> 
+        <h1>4-Way BSA: LRU vs MRU</h1>
+    </header>
+
+    <section class="mainUi">
+        <h2>Specifications</h2>
+        <p>Note:<i>Main Memory size is fixed at 1024 blocks</i></p>
+        <div class="config">
+            <label>Block Size: <input type="number" id="blockSize" value="0"></label>
+            <label>Number of Cache Blocks: <input type="number" id="cacheBlocks" value="0"></label>
+            <label>Read Policy: <select id="policy">
+                <option value="Non-load-through">Non-Load-Through</option>
+                <option value="Load-through">Load-Through</option>
+            </select>
+            </label>
+            <label> Test Cases 
+                <select id="testCases">
+                        <option value="sequential">Sequential Sequence</option>
+                        <option value="mid-repeat">Mid-Repeat Sequence</option>
+                        <option value="random">Random Sequence</option>
+                </select>
+            </label>
+
+            <div class="Output">
+                <! this is where the visual and statistical output will be placed !>
+            </div>
+
+
+        </div>
+    </section>
+
+</body>
+
+
+
+
+</html>
