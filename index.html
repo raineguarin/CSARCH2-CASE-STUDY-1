@@ -4,7 +4,33 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4-Way BSA LRU vs MRU</title>
-    <! place whatever the css is here !>
+    <style>
+        body{
+            background-color: gray;
+            font-family: Helvetica, sans-serif;
+            text-align: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .config input[type="number"],
+        .config select {
+            border: 3px solid #555555; 
+            border-radius: 12px;
+            width: 200px;      
+            padding: 6px 7px;           
+           
+            outline: none;               
+            background-color: #ffffff;   
+            box-sizing: border-box;  
+            transition: border-color 0.2s ease, box-shadow 0.2s;
+            
+            text-align: center;
+            font-size: 14px;
+            font-family: Helvetica, sans-serif;
+        }
+
+    </style>
 </head>    
 <body>
     <header> 
@@ -15,14 +41,17 @@
         <h2>Specifications</h2>
         <p>Note:<i>Main Memory size is fixed at 1024 blocks</i></p>
         <div class="config">
-            <label>Block Size: <input type="number" id="blockSize" value="0"></label>
-            <label>Number of Cache Blocks: <input type="number" id="cacheBlocks" value="0"></label>
-            <label>Read Policy: <select id="policy">
+            <label>Block Size: <br> <input type="number" id="blockSize" value="0"></label>
+            <br><br>
+            <label>Number of Cache Blocks: <br> <input type="number" id="cacheBlocks" value="0"></label>
+            <br><br>
+            <label>Read Policy: <br> <select id="policy">
                 <option value="Non-load-through">Non-Load-Through</option>
                 <option value="Load-through">Load-Through</option>
             </select>
+            <br><br>
             </label>
-            <label> Test Cases 
+            <label> Test Cases <br>
                 <select id="testCases">
                         <option value="sequential">Sequential Sequence</option>
                         <option value="mid-repeat">Mid-Repeat Sequence</option>
