@@ -41,9 +41,9 @@
         <h2>Specifications</h2>
         <p>Note:<i>Main Memory size is fixed at 1024 blocks</i></p>
         <div class="config">
-            <label>Block Size: <br> <input type="number" id="blockSize" value="0"></label>
+            <label>Block Size (words): <br> <input type="number" id="blockSize" value="4"></label>
             <br><br>
-            <label>Number of Cache Blocks: <br> <input type="number" id="cacheBlocks" value="0"></label>
+            <label>Number of Cache Blocks: <br> <input type="number" id="cacheBlocks" value="16"></label>
             <br><br>
             <label>Read Policy: <br> <select id="policy">
                 <option value="Non-load-through">Non-Load-Through</option>
@@ -51,6 +51,10 @@
             </select>
             <br><br>
             </label>
+            <label>Cache Hit Time (cycles): <br> <input type="number" id="hitTime" value="1"></label>
+            <br><br>
+            <label>Miss Penalty per Word (cycles): <br> <input type="number" id="missPenaltyPerWord" value="10"></label>
+            <br><br>
             <label> Test Cases <br>
                 <select id="testCases">
                         <option value="sequential">Sequential Sequence</option>
@@ -73,9 +77,9 @@
         <!-- this is the test js right now pls change if wrong -->
         <script>
             const NUM_WAYS = 4;
-            const MEM_BLOCKS = 1024; 
-            const HIT_TIME = 1;
-            const MEM_PER_WORD = 10;
+            const MEM_BLOCKS = 1024;
+            // i removed na the fixed HIT_TIME / MEM_PER_WORD consts, galing na sa input fields
+            // ni user yun ngayon para maadjust nila mismo sa UI
 
         function isPowerOfTwo(n) {
             return Number.isInteger(n) && n > 0 && (n & (n - 1)) === 0;
@@ -98,12 +102,26 @@
                 seq.push(...base, ...base);
 
             } else if (testCase === 'mid-repeat') {
-                const base = [];
-                for (let i = 0; i < 2 * n; i++) base.push(i);
-                const halfReversed = base.slice(0, n).slice().reverse();
-                const fullReversed = base.slice().reverse();
-                seq.push(...base, ...base, ...halfReversed, ...fullReversed);
-        
+                // this is based on the example sa spec (n=4): 0,1,2,3, 0,1,2,3,4,5,6,7, 0,1,2,3,4,5,6,7,
+                // 3,2,1,0, 7,6,5,4,3,2,1,0, 7,6,5,4,3,2,1,0 -- basically go up tapos go down ulit
+                const ascendingPartial = [];
+                for (let i = 0; i < n; i++) ascendingPartial.push(i);
+
+                const ascendingFull = [];
+                for (let i = 0; i < 2 * n; i++) ascendingFull.push(i);
+
+                const descendingPartial = ascendingPartial.slice().reverse();
+                const descendingFull = ascendingFull.slice().reverse();
+
+                seq.push(
+                    ...ascendingPartial,
+                    ...ascendingFull,
+                    ...ascendingFull,
+                    ...descendingPartial,
+                    ...descendingFull,
+                    ...descendingFull
+                );
+
             } else if (testCase === 'random') {
                 for (let i = 0; i < 64; i++) {
                     if (input && input.length > 0) {
@@ -188,11 +206,13 @@
             return html;
         }
 
+        // note to self: hit dapat yung 2nd param (cost ng hit) and missPen yung 3rd (cost ng miss)
+        // baliktad to dati kaya mali yung amat/total time na lumalabas
         function statOutput(res, hit, missPen) {
-            hitRate = (res.hits / res.total);
-            missRate = (res.misses / res.total);
-            totalAccessTime = (Number(res.hits) * Number(hit)) + (Number(res.misses) * Number(missPen));
-            amat = totalAccessTime / res.total;
+            let hitRate = (res.hits / res.total);
+            let missRate = (res.misses / res.total);
+            let totalAccessTime = (Number(res.hits) * Number(hit)) + (Number(res.misses) * Number(missPen));
+            let amat = totalAccessTime / res.total;
 
             return {
                 hitRate: (hitRate * 100).toFixed(2),
@@ -238,6 +258,8 @@
             runBtn.addEventListener('click', () => {
                 const blockSize = parseInt(document.getElementById('blockSize').value, 10);
                 const cacheBlocks = parseInt(document.getElementById('cacheBlocks').value, 10);
+                const hitTime = parseInt(document.getElementById('hitTime').value, 10);
+                const missPenaltyPerWord = parseInt(document.getElementById('missPenaltyPerWord').value, 10);
                 const testCase = document.getElementById('testCases').value;
                 const policy = document.getElementById('policy').value;
                 const rawInput = document.getElementById('baseSequence').value;
@@ -250,6 +272,11 @@
                     outputDiv.innerHTML = `<p style="color: #ff8888;">Error: Cache Blocks must be a power of 2 and at least 4.</p>`;
                     return;
                 }
+                // wag payagan mag-negative si hit time / miss penalty, wala namang sense yun
+                if (isNaN(hitTime) || hitTime < 0 || isNaN(missPenaltyPerWord) || missPenaltyPerWord < 0) {
+                    outputDiv.innerHTML = `<p style="color: #ff8888;">Error: Hit Time and Miss Penalty per Word must be non-negative numbers.</p>`;
+                    return;
+                }
 
                 let inputBlock = [];
                 if (rawInput.trim() !== '') {
@@ -260,11 +287,14 @@
                     }
                 }
 
+                // load-through: di na hihintayin buong block, yung salitang word lang na kailangan
+                // non-load-through: kailangan hintayin muna buong block bago maka-access kaya mas
+                // mataas siya lalo na pag malaki yung block size
                 let missPenalty = 0;
                 if (policy === 'Non-load-through') {
-                    missPenalty = HIT_TIME + (blockSize * MEM_PER_WORD);
+                    missPenalty = hitTime + (blockSize * missPenaltyPerWord);
                 } else {
-                    missPenalty = HIT_TIME + MEM_PER_WORD; 
+                    missPenalty = hitTime + missPenaltyPerWord;
                 }
 
                 const numSets = cacheBlocks / NUM_WAYS;
@@ -273,8 +303,9 @@
                 const lruRes = runSimulation('LRU', numSets, sequence);
                 const mruRes = runSimulation('MRU', numSets, sequence);
 
-                const lruStats = statOutput(lruRes, missPenalty, HIT_TIME);
-                const mruStats = statOutput(mruRes, missPenalty, HIT_TIME);
+                // (result, cost per hit, cost per miss) -- baliktad to dati, ayusin lagi pagkasunod
+                const lruStats = statOutput(lruRes, hitTime, missPenalty);
+                const mruStats = statOutput(mruRes, hitTime, missPenalty);
 
                 let outHtml = '<div style="margin-top:20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">';
                 outHtml += '<h3>Statistical Outputs (' + sequence.length + ' Accesses)</h3>';
