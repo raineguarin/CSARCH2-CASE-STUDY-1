@@ -74,14 +74,24 @@
         <script>
             const NUM_WAYS = 4;
             const MEM_BLOCKS = 1024; 
+            const HIT_TIME = 1;
+            const MEM_PER_WORD = 10;
 
         function isPowerOfTwo(n) {
             return Number.isInteger(n) && n > 0 && (n & (n - 1)) === 0;
         }
 
 
-        function generateSequence(testCase, n) {
+        function generateSequence(testCase, n, input) {
             const seq = [];
+
+            const getBlock = (index) => {
+                if (input && input.length > 0) {
+                    return input[index % input.length];
+                }
+                return index;
+            };
+
             if (testCase === 'sequential') {
                 const base = [];
                 for (let i = 0; i < 2 * n; i++) base.push(i);
@@ -96,7 +106,11 @@
         
             } else if (testCase === 'random') {
                 for (let i = 0; i < 64; i++) {
-                    seq.push(Math.floor(Math.random() * MEM_BLOCKS));
+                    if (input && input.length > 0) {
+                        seq.push(input[Math.floor(Math.random() * input.length)]);
+                    } else {
+                        seq.push(Math.floor(Math.random() * MEM_BLOCKS));
+                    }
             }
         }
 
@@ -109,7 +123,7 @@
             for (let s = 0; s < numSets; s++) {
                 const ways = [];
                 for (let w = 0; w < NUM_WAYS; w++) {
-                    ways.push({ valid: false, tag: null, lastUsed: -1 });
+                    ways.push({ valid: false, tag: null, lastUsed: -1 ,block: null});
                 }
                 sets.push(ways);
         }
@@ -120,49 +134,99 @@
             const cache = createCache(numSets);
             let hits = 0;
             let misses = 0;
+            const simLog =[];
 
             sequence.forEach((blockAddr, step) => {
                 const setIndex = blockAddr % numSets;
                 const tag = Math.floor(blockAddr / numSets);
                 const set = cache[setIndex];
-
-                // Check for Hit
                 const hitWay = set.find(w => w.valid && w.tag === tag);
+                let actLog = "";
 
                 if (hitWay) {
                     hits++;
                     hitWay.lastUsed = step;
+                    actLog = 'Hit in set ' + setIndex;
                 } else {
                     misses++;
-                    // Find an empty way first
                     let targetWay = set.find(w => !w.valid);
 
                     if (!targetWay) {
-                        // Cache set is full -> apply Replacement Policy
                         if (policyType === 'LRU') {
-                            // Least Recently Used (smallest lastUsed timestamp)
                             targetWay = set.reduce((min, w) => w.lastUsed < min.lastUsed ? w : min, set[0]);
                         } else {
-                            // Most Recently Used (largest lastUsed timestamp)
                             targetWay = set.reduce((max, w) => w.lastUsed > max.lastUsed ? w : max, set[0]);
                         }
+                    actLog = 'MISS (Evicted Block ' + targetWay.block + ' from Set ' + setIndex + ')';
+                    } else {
+                        actLog = 'MISS (Placed in empty slot in Set ' + setIndex + ')';
                     }
 
                     targetWay.valid = true;
                     targetWay.tag = tag;
                     targetWay.lastUsed = step;
+                    targetWay.block = blockAddr;
                 }
+                simLog.push('Step ' + (step + 1) + ': Access Block ' + blockAddr + ' -> ' + actLog);
             });
 
-            return { hits, misses, total: sequence.length };
+            return { hits, misses, total: sequence.length, finalCache: cache, simLog };
         }
 
-        // UI Event Listener & Renderer
+        function cachTable(cache, title) {
+            let html = '<h4>' + title +' - Final Memory Snapshot</h4>';
+            html += `<table style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size:12px;" border="1">`;
+            html += `<tr><th>Set Index</th><th>Way 0</th><th>Way 1</th><th>Way 2</th><th>Way 3</th></tr>`;
+            cache.forEach((set, i) => {
+                html += `<tr><td>${i}</td>`;
+                set.forEach(way => {
+                    html += `<td>${way.valid ? 'Blk '+way.block : 'Empty'}</td>`;
+                });
+                html += `</tr>`;
+            });
+            html += `</table>`;
+            return html;
+        }
+
+        function statOutput(res, hit, missPen) {
+            hitRate = (res.hits / res.total);
+            missRate = (res.misses / res.total);
+            totalAccessTime = (Number(res.hits) * Number(hit)) + (Number(res.misses) * Number(missPen));
+            amat = totalAccessTime / res.total;
+
+            return {
+                hitRate: (hitRate * 100).toFixed(2),
+                missRate: (missRate * 100).toFixed(2),
+                totalTime: totalAccessTime,
+                amat: amat.toFixed(2)
+            };
+        }
+
         document.addEventListener('DOMContentLoaded', () => {
             const configDiv = document.querySelector('.config');
             let outputDiv = document.querySelector('.Output') || document.querySelector('#output');
 
-            // Add Run Button if not present
+            const testCasesLabel = document.getElementById('testCases').parentNode;
+            const baseSeqLabel = document.createElement('label');
+            baseSeqLabel.innerHTML = 'Base Sequence Pool: <br> <input type="text" id="baseSequence" placeholder="e.g. 10, 20, 30, 40">';
+            baseSeqLabel.style.display = 'block';
+            baseSeqLabel.style.marginBottom = '15px';
+            
+            const baseSeqInput = baseSeqLabel.querySelector('input');
+            baseSeqInput.style.border = '3px solid #555555';
+            baseSeqInput.style.borderRadius = '12px';
+            baseSeqInput.style.width = '200px';
+            baseSeqInput.style.padding = '6px 7px';
+            baseSeqInput.style.outline = 'none';
+            baseSeqInput.style.backgroundColor = '#ffffff';
+            baseSeqInput.style.boxSizing = 'border-box';
+            baseSeqInput.style.textAlign = 'center';
+            baseSeqInput.style.fontSize = '14px';
+            baseSeqInput.style.fontFamily = 'Helvetica, sans-serif';
+            baseSeqInput.style.transition = 'border-color 0.2s ease, box-shadow 0.2s';
+
+            testCasesLabel.parentNode.insertBefore(baseSeqLabel, testCasesLabel);
+
             let runBtn = document.getElementById('runBtn');
             if (!runBtn) {
                 runBtn = document.createElement('button');
@@ -172,12 +236,35 @@
             }
 
             runBtn.addEventListener('click', () => {
+                const blockSize = parseInt(document.getElementById('blockSize').value, 10);
                 const cacheBlocks = parseInt(document.getElementById('cacheBlocks').value, 10);
                 const testCase = document.getElementById('testCases').value;
+                const policy = document.getElementById('policy').value;
+                const rawInput = document.getElementById('baseSequence').value;
 
-                if (!isPowerOfTwo(cacheBlocks) || cacheBlocks < NUM_WAYS) {
-                    outputDiv.innerHTML = `<p style="color: #ff8888;">Error: Cache blocks must be a power of 2 and at least ${NUM_WAYS}.</p>`;
+                if (isNaN(blockSize) || !isPowerOfTwo(blockSize) || blockSize < 2) {
+                    outputDiv.innerHTML = `<p style="color: #ff8888;">Error: Block Size must be a power of 2 and at least 2.</p>`;
                     return;
+                }
+                if (isNaN(cacheBlocks) || !isPowerOfTwo(cacheBlocks) || cacheBlocks < 4) {
+                    outputDiv.innerHTML = `<p style="color: #ff8888;">Error: Cache Blocks must be a power of 2 and at least 4.</p>`;
+                    return;
+                }
+
+                let inputBlock = [];
+                if (rawInput.trim() !== '') {
+                    inputBlock = rawInput.split(',').map(s => parseInt(s.trim(), 10)).filter(num => !isNaN(num));
+                    if (inputBlock.length === 0) {
+                        outputDiv.innerHTML = `<p style="color: #ff8888;">Please Separate Numbers with a comma</p>`;
+                        return;
+                    }
+                }
+
+                let missPenalty = 0;
+                if (policy === 'Non-load-through') {
+                    missPenalty = HIT_TIME + (blockSize * MEM_PER_WORD);
+                } else {
+                    missPenalty = HIT_TIME + MEM_PER_WORD; 
                 }
 
                 const numSets = cacheBlocks / NUM_WAYS;
@@ -186,34 +273,41 @@
                 const lruRes = runSimulation('LRU', numSets, sequence);
                 const mruRes = runSimulation('MRU', numSets, sequence);
 
-                const lruHitRate = ((lruRes.hits / lruRes.total) * 100).toFixed(2);
-                const mruHitRate = ((mruRes.hits / mruRes.total) * 100).toFixed(2);
+                const lruStats = statOutput(lruRes, missPenalty, HIT_TIME);
+                const mruStats = statOutput(mruRes, missPenalty, HIT_TIME);
 
-                outputDiv.innerHTML = `
-                    <div style="margin-top:20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
-                        <h3>Results (${sequence.length} Accesses, ${numSets} Sets)</h3>
-                        <table style="width:100%; color:white; text-align:center;">
-                            <tr>
-                                <th>Policy</th>
-                                <th>Hits</th>
-                                <th>Misses</th>
-                                <th>Hit Rate</th>
-                            </tr>
-                            <tr>
-                                <td><b>LRU</b></td>
-                                <td>${lruRes.hits}</td>
-                                <td>${lruRes.misses}</td>
-                                <td>${lruHitRate}%</td>
-                            </tr>
-                            <tr>
-                                <td><b>MRU</b></td>
-                                <td>${mruRes.hits}</td>
-                                <td>${mruRes.misses}</td>
-                                <td>${mruHitRate}%</td>
-                            </tr>
-                        </table>
-                    </div>
-                `;
+                let outHtml = '<div style="margin-top:20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">';
+                outHtml += '<h3>Statistical Outputs (' + sequence.length + ' Accesses)</h3>';
+                outHtml += '<p style="font-size:12px; font-weight:normal;">Miss Penalty calculated at ' + missPenalty + ' cycles.</p>';
+                
+                outHtml += '<table style="width:100%; color:white; text-align:center; border-collapse: collapse; margin-bottom: 20px;" border="1">';
+                outHtml += '<tr><th>Metric</th><th>LRU</th><th>MRU</th></tr>';
+                outHtml += '<tr><td>Hits</td><td>' + lruRes.hits + '</td><td>' + mruRes.hits + '</td></tr>';
+                outHtml += '<tr><td>Misses</td><td>' + lruRes.misses + '</td><td>' + mruRes.misses + '</td></tr>';
+                outHtml += '<tr><td>Hit Rate</td><td>' + lruStats.hitRate + '%</td><td>' + mruStats.hitRate + '%</td></tr>';
+                outHtml += '<tr><td>Miss Rate</td><td>' + lruStats.missRate + '%</td><td>' + mruStats.missRate + '%</td></tr>';
+                outHtml += '<tr><td>Total Access Time</td><td>' + lruStats.totalTime + ' cycles</td><td>' + mruStats.totalTime + ' cycles</td></tr>';
+                outHtml += '<tr><td>AMAT</td><td>' + lruStats.amat + ' cycles</td><td>' + mruStats.amat + ' cycles</td></tr>';
+                outHtml += '</table>';
+
+                outHtml += '<div style="display: flex; justify-content: space-between; gap: 10px;">';
+                outHtml += '<div style="flex: 1;">' + cachTable(lruRes.finalCache, 'LRU') + '</div>';
+                outHtml += '<div style="flex: 1;">' + cachTable(mruRes.finalCache, 'MRU') + '</div>';
+                outHtml += '</div>';
+
+                outHtml += '<h3>System Output Trace Log</h3>';
+                outHtml += '<div style="display: flex; justify-content: space-between; gap: 10px;">';
+                
+                outHtml += '<div style="flex: 1; max-height: 250px; overflow-y: auto; background: #222; padding: 10px; border: 1px solid #555; text-align: left; font-size: 12px; font-weight: normal; font-family: monospace;">';
+                outHtml += '<strong>LRU Trace:</strong><br>' + lruRes.simLog.join('<br>');
+                outHtml += '</div>';
+
+                outHtml += '<div style="flex: 1; max-height: 250px; overflow-y: auto; background: #222; padding: 10px; border: 1px solid #555; text-align: left; font-size: 12px; font-weight: normal; font-family: monospace;">';
+                outHtml += '<strong>MRU Trace:</strong><br>' + mruRes.simLog.join('<br>');
+                outHtml += '</div>';
+                outHtml += '</div></div>';
+
+                outputDiv.innerHTML = outHtml;
             });
         });
     </script>
