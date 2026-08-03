@@ -73,3 +73,153 @@
 
 
 </html>
+
+        /*this is the test js right now pls change if wrong*/
+        <script>
+            const NUM_WAYS = 4;
+            const MEM_BLOCKS = 1024; 
+
+        function isPowerOfTwo(n) {
+            return Number.isInteger(n) && n > 0 && (n & (n - 1)) === 0;
+        }
+
+
+        function generateSequence(testCase, n) {
+            const seq = [];
+            if (testCase === 'sequential') {
+                const base = [];
+                for (let i = 0; i < 2 * n; i++) base.push(i);
+                seq.push(...base, ...base);
+
+            } else if (testCase === 'mid-repeat') {
+                const base = [];
+                for (let i = 0; i < 2 * n; i++) base.push(i);
+                const halfReversed = base.slice(0, n).slice().reverse();
+                const fullReversed = base.slice().reverse();
+                seq.push(...base, ...base, ...halfReversed, ...fullReversed);
+        
+            } else if (testCase === 'random') {
+                for (let i = 0; i < 64; i++) {
+                    seq.push(Math.floor(Math.random() * MEM_BLOCKS));
+            }
+        }
+
+        return seq;
+
+        }
+
+        function createCache(numSets) {
+            const sets = [];
+            for (let s = 0; s < numSets; s++) {
+                const ways = [];
+                for (let w = 0; w < NUM_WAYS; w++) {
+                    ways.push({ valid: false, tag: null, lastUsed: -1 });
+                }
+                sets.push(ways);
+        }
+        return sets;
+    }
+
+    function runSimulation(policyType, numSets, sequence) {
+            const cache = createCache(numSets);
+            let hits = 0;
+            let misses = 0;
+
+            sequence.forEach((blockAddr, step) => {
+                const setIndex = blockAddr % numSets;
+                const tag = Math.floor(blockAddr / numSets);
+                const set = cache[setIndex];
+
+                // Check for Hit
+                const hitWay = set.find(w => w.valid && w.tag === tag);
+
+                if (hitWay) {
+                    hits++;
+                    hitWay.lastUsed = step;
+                } else {
+                    misses++;
+                    // Find an empty way first
+                    let targetWay = set.find(w => !w.valid);
+
+                    if (!targetWay) {
+                        // Cache set is full -> apply Replacement Policy
+                        if (policyType === 'LRU') {
+                            // Least Recently Used (smallest lastUsed timestamp)
+                            targetWay = set.reduce((min, w) => w.lastUsed < min.lastUsed ? w : min, set[0]);
+                        } else {
+                            // Most Recently Used (largest lastUsed timestamp)
+                            targetWay = set.reduce((max, w) => w.lastUsed > max.lastUsed ? w : max, set[0]);
+                        }
+                    }
+
+                    targetWay.valid = true;
+                    targetWay.tag = tag;
+                    targetWay.lastUsed = step;
+                }
+            });
+
+            return { hits, misses, total: sequence.length };
+        }
+
+        // UI Event Listener & Renderer
+        document.addEventListener('DOMContentLoaded', () => {
+            const configDiv = document.querySelector('.config');
+            let outputDiv = document.querySelector('.Output') || document.querySelector('#output');
+
+            // Add Run Button if not present
+            let runBtn = document.getElementById('runBtn');
+            if (!runBtn) {
+                runBtn = document.createElement('button');
+                runBtn.id = 'runBtn';
+                runBtn.innerText = 'Run Simulation';
+                configDiv.insertBefore(runBtn, outputDiv);
+            }
+
+            runBtn.addEventListener('click', () => {
+                const cacheBlocks = parseInt(document.getElementById('cacheBlocks').value, 10);
+                const testCase = document.getElementById('testCases').value;
+
+                if (!isPowerOfTwo(cacheBlocks) || cacheBlocks < NUM_WAYS) {
+                    outputDiv.innerHTML = `<p style="color: #ff8888;">Error: Cache blocks must be a power of 2 and at least ${NUM_WAYS}.</p>`;
+                    return;
+                }
+
+                const numSets = cacheBlocks / NUM_WAYS;
+                const sequence = generateSequence(testCase, cacheBlocks);
+
+                const lruRes = runSimulation('LRU', numSets, sequence);
+                const mruRes = runSimulation('MRU', numSets, sequence);
+
+                const lruHitRate = ((lruRes.hits / lruRes.total) * 100).toFixed(2);
+                const mruHitRate = ((mruRes.hits / mruRes.total) * 100).toFixed(2);
+
+                outputDiv.innerHTML = `
+                    <div style="margin-top:20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">
+                        <h3>Results (${sequence.length} Accesses, ${numSets} Sets)</h3>
+                        <table style="width:100%; color:white; text-align:center;">
+                            <tr>
+                                <th>Policy</th>
+                                <th>Hits</th>
+                                <th>Misses</th>
+                                <th>Hit Rate</th>
+                            </tr>
+                            <tr>
+                                <td><b>LRU</b></td>
+                                <td>${lruRes.hits}</td>
+                                <td>${lruRes.misses}</td>
+                                <td>${lruHitRate}%</td>
+                            </tr>
+                            <tr>
+                                <td><b>MRU</b></td>
+                                <td>${mruRes.hits}</td>
+                                <td>${mruRes.misses}</td>
+                                <td>${mruHitRate}%</td>
+                            </tr>
+                        </table>
+                    </div>
+                `;
+            });
+        });
+    </script>
+</body>
+</html>
