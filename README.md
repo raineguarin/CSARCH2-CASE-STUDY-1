@@ -1,6 +1,6 @@
 ## The following table summarizes the results of the 4-Way BSA LRU (Least Recently Used) vs 4-Way BSA MRU (Most Recently Used) program.
 
-| Sequence Pattern | Metric | LRU | MRU |
+| Test Case | Metric | LRU | MRU |
 | :--- | :--- | :--- | :--- |
 | **Sequential (64 accesses)** | **Hit Rate** | 0.00% | 25.00% |
 | | **AMAT (Non Load-Through)** | 41.00 cycles | 31.00 cycles |
