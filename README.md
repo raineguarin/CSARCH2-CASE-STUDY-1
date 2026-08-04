@@ -17,7 +17,10 @@ The group was tasked to create a web-based application of a 4-Way BSA + Least Re
 
 The results below were produced using the parameters above. Block Size, Number of Cache Blocks, Hit Time, and Miss Penalty per Word are all adjustable in the UI; these are the values used for this run.
 
+
+
 ### The following table summarizes the results of the 4-Way BSA LRU (Least Recently Used) vs 4-Way BSA MRU (Most Recently Used) program.
+
 Note that these cases share the following settings:
 
 Block Size: 4
@@ -25,6 +28,7 @@ Number of Cache Blocks: 16
 Cache Hit Time (cycles): 1
 Miss Penalty per Word (cycles): 10
 Base Sequence Pool: default (1, 2, 3, 4, 5, 6, 7, 8, …)
+
 
 ## Specifications & Parameters
 | Test Case | Accesses | Hit Rate (LRU) | Hit Rate (MRU) | AMAT Non-LT (LRU) | AMAT Non-LT (MRU) | AMAT LT (LRU) | AMAT LT (MRU) |
