@@ -24,9 +24,13 @@ The results below were produced using the parameters above. Block Size, Number o
 Note that these cases share the following settings:
 
 Block Size: 4
+
 Number of Cache Blocks: 16
+
 Cache Hit Time (cycles): 1
+
 Miss Penalty per Word (cycles): 10
+
 Base Sequence Pool: default (1, 2, 3, 4, 5, 6, 7, 8, …)
 
 
