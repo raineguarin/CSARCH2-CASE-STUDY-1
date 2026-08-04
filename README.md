@@ -61,3 +61,6 @@ The hit rates and AMATS for both LRU and MRU are the same. Since the addresses a
 Based on the results given by the program, MRU performs better for sequential accessing, mid-repeat accessing, and handling loops that could be larger than the cache capacity because it preserves older cache blocks and removes the newest ones. This led to higher hit rates and lower AMATs. 
 
 The hit rates are identical regardless of read policy. However, the AMAT results for all test cases that use Load-Through are lower than Non Load-Through. The Load-Through read policy sends the word being requested directly to the CPU. This is executed while the other blocks fill other cache blocks. 
+
+## Video Walkthrough Link
+https://www.youtube.com/watch?v=O2tFztDv1QU
