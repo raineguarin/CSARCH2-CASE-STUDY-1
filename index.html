@@ -62,6 +62,13 @@
                         <option value="random">Random Sequence</option>
                 </select>
             </label>
+            <br><br>
+            <label> View Mode <br>
+                <select id="viewMode">
+                        <option value="final">Final Snapshot Only</option>
+                        <option value="animated">Step-by-Step Animated</option>
+                </select>
+            </label>
 
             <div class="Output">
                 <! this is where the visual and statistical output will be placed !>
@@ -170,6 +177,8 @@
             let hits = 0;
             let misses = 0;
             const simLog =[];
+            // a copy of the whole cache after every access, used to play back the simulation step by step
+            const stepSnapshots = [];
 
             sequence.forEach((blockAddr, step) => {
                 const setIndex = blockAddr % numSets;
@@ -203,19 +212,35 @@
                     targetWay.block = blockAddr;
                 }
                 simLog.push('Step ' + (step + 1) + ': Access Block ' + blockAddr + ' -> ' + actLog);
+                stepSnapshots.push(JSON.parse(JSON.stringify(cache)));
             });
 
-            return { hits, misses, total: sequence.length, finalCache: cache, simLog };
+            return { hits, misses, total: sequence.length, finalCache: cache, simLog, stepSnapshots };
         }
 
-        function cachTable(cache, title) {
-            let html = '<h4>' + title +' - Final Memory Snapshot</h4>';
-            html += `<table style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size:12px;" border="1">`;
+        // subtitle defaults to "Final Memory Snapshot" but during animated playback we pass in "Step X of N" instead
+        function cachTable(cache, title, subtitle) {
+            subtitle = subtitle || 'Final Memory Snapshot';
+            let html = '<h4>' + title + ' - ' + subtitle + '</h4>';
+            html += `<table style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size:11px;" border="1">`;
             html += `<tr><th>Set Index</th><th>Way 0</th><th>Way 1</th><th>Way 2</th><th>Way 3</th></tr>`;
             cache.forEach((set, i) => {
+                // figure out which way in this set was used longest ago (LRU) and most recently (MRU),
+                // so we can mark them in the grid
+                const validWays = set.filter(w => w.valid);
+                const oldestWay = validWays.length ? validWays.reduce((min, w) => w.lastUsed < min.lastUsed ? w : min, validWays[0]) : null;
+                const newestWay = validWays.length ? validWays.reduce((max, w) => w.lastUsed > max.lastUsed ? w : max, validWays[0]) : null;
+
                 html += `<tr><td>${i}</td>`;
                 set.forEach(way => {
-                    html += `<td>${way.valid ? 'Blk '+way.block : 'Empty'}</td>`;
+                    if (!way.valid) {
+                        html += `<td>Empty<br>Valid: 0</td>`;
+                    } else {
+                        let marker = '';
+                        if (way === oldestWay) marker += ' <span style="color:#ff8888;">[LRU]</span>';
+                        if (way === newestWay) marker += ' <span style="color:#88ff88;">[MRU]</span>';
+                        html += `<td>Blk ${way.block}<br>Valid: 1, Tag: ${way.tag}${marker}</td>`;
+                    }
                 });
                 html += `</tr>`;
             });
@@ -264,6 +289,9 @@
 
             testCasesLabel.parentNode.insertBefore(baseSeqLabel, testCasesLabel);
 
+            // holds the setInterval id for the step-by-step animation, so we can stop a running one if Run is clicked again
+            let animTimer = null;
+
             let runBtn = document.getElementById('runBtn');
             if (!runBtn) {
                 runBtn = document.createElement('button');
@@ -273,11 +301,17 @@
             }
 
             runBtn.addEventListener('click', () => {
+                if (animTimer) {
+                    clearInterval(animTimer);
+                    animTimer = null;
+                }
+
                 const blockSize = parseInt(document.getElementById('blockSize').value, 10);
                 const cacheBlocks = parseInt(document.getElementById('cacheBlocks').value, 10);
                 const hitTime = parseInt(document.getElementById('hitTime').value, 10);
                 const missPenaltyPerWord = parseInt(document.getElementById('missPenaltyPerWord').value, 10);
                 const testCase = document.getElementById('testCases').value;
+                const viewMode = document.getElementById('viewMode').value;
                 const policy = document.getElementById('policy').value;
                 const rawInput = document.getElementById('baseSequence').value;
 
@@ -340,6 +374,7 @@
 
                 outHtml += '<table style="width:100%; color:white; text-align:center; border-collapse: collapse; margin-bottom: 20px;" border="1">';
                 outHtml += '<tr><th>Metric</th><th>LRU</th><th>MRU</th></tr>';
+                outHtml += '<tr><td>Total Accesses</td><td>' + lruRes.total + '</td><td>' + mruRes.total + '</td></tr>';
                 outHtml += '<tr><td>Hits</td><td>' + lruRes.hits + '</td><td>' + mruRes.hits + '</td></tr>';
                 outHtml += '<tr><td>Misses</td><td>' + lruRes.misses + '</td><td>' + mruRes.misses + '</td></tr>';
                 outHtml += '<tr><td>Hit Rate</td><td>' + lruStats.hitRate + '%</td><td>' + mruStats.hitRate + '%</td></tr>';
@@ -348,24 +383,66 @@
                 outHtml += '<tr><td>AMAT</td><td>' + lruStats.amat + ' cycles</td><td>' + mruStats.amat + ' cycles</td></tr>';
                 outHtml += '</table>';
 
-                outHtml += '<div style="display: flex; justify-content: space-between; gap: 10px;">';
-                outHtml += '<div style="flex: 1;">' + cachTable(lruRes.finalCache, 'LRU') + '</div>';
-                outHtml += '<div style="flex: 1;">' + cachTable(mruRes.finalCache, 'MRU') + '</div>';
-                outHtml += '</div>';
+                if (viewMode === 'final') {
+                    // just show the end result, no playback
+                    outHtml += '<div style="display: flex; justify-content: space-between; gap: 10px;">';
+                    outHtml += '<div style="flex: 1;">' + cachTable(lruRes.finalCache, 'LRU') + '</div>';
+                    outHtml += '<div style="flex: 1;">' + cachTable(mruRes.finalCache, 'MRU') + '</div>';
+                    outHtml += '</div>';
 
-                outHtml += '<h3>System Output Trace Log</h3>';
-                outHtml += '<div style="display: flex; justify-content: space-between; gap: 10px;">';
-                
-                outHtml += '<div style="flex: 1; max-height: 250px; overflow-y: auto; background: #222; padding: 10px; border: 1px solid #555; text-align: left; font-size: 12px; font-weight: normal; font-family: monospace;">';
-                outHtml += '<strong>LRU Trace:</strong><br>' + lruRes.simLog.join('<br>');
-                outHtml += '</div>';
+                    outHtml += '<h3>System Output Trace Log</h3>';
+                    outHtml += '<div style="display: flex; justify-content: space-between; gap: 10px;">';
 
-                outHtml += '<div style="flex: 1; max-height: 250px; overflow-y: auto; background: #222; padding: 10px; border: 1px solid #555; text-align: left; font-size: 12px; font-weight: normal; font-family: monospace;">';
-                outHtml += '<strong>MRU Trace:</strong><br>' + mruRes.simLog.join('<br>');
-                outHtml += '</div>';
-                outHtml += '</div></div>';
+                    outHtml += '<div style="flex: 1; max-height: 250px; overflow-y: auto; background: #222; padding: 10px; border: 1px solid #555; text-align: left; font-size: 12px; font-weight: normal; font-family: monospace;">';
+                    outHtml += '<strong>LRU Trace:</strong><br>' + lruRes.simLog.join('<br>');
+                    outHtml += '</div>';
 
-                outputDiv.innerHTML = outHtml;
+                    outHtml += '<div style="flex: 1; max-height: 250px; overflow-y: auto; background: #222; padding: 10px; border: 1px solid #555; text-align: left; font-size: 12px; font-weight: normal; font-family: monospace;">';
+                    outHtml += '<strong>MRU Trace:</strong><br>' + mruRes.simLog.join('<br>');
+                    outHtml += '</div>';
+                    outHtml += '</div></div>';
+
+                    outputDiv.innerHTML = outHtml;
+                } else {
+                    // step-by-step animated: leave empty containers here, then fill them in one access at a time below
+                    outHtml += '<div id="animGrids" style="display: flex; justify-content: space-between; gap: 10px;"></div>';
+                    outHtml += '<p id="animStepLabel" style="font-size:12px; font-weight:normal;"></p>';
+
+                    outHtml += '<h3>System Output Trace Log</h3>';
+                    outHtml += '<div style="display: flex; justify-content: space-between; gap: 10px;">';
+                    outHtml += '<div id="animLruLog" style="flex: 1; max-height: 250px; overflow-y: auto; background: #222; padding: 10px; border: 1px solid #555; text-align: left; font-size: 12px; font-weight: normal; font-family: monospace;"><strong>LRU Trace:</strong><br></div>';
+                    outHtml += '<div id="animMruLog" style="flex: 1; max-height: 250px; overflow-y: auto; background: #222; padding: 10px; border: 1px solid #555; text-align: left; font-size: 12px; font-weight: normal; font-family: monospace;"><strong>MRU Trace:</strong><br></div>';
+                    outHtml += '</div></div>';
+
+                    outputDiv.innerHTML = outHtml;
+
+                    const gridsDiv = document.getElementById('animGrids');
+                    const stepLabel = document.getElementById('animStepLabel');
+                    const lruLogDiv = document.getElementById('animLruLog');
+                    const mruLogDiv = document.getElementById('animMruLog');
+                    const totalSteps = sequence.length;
+                    const ANIM_DELAY_MS = 300;
+                    let step = 0;
+
+                    animTimer = setInterval(() => {
+                        const stepText = 'Step ' + (step + 1) + ' of ' + totalSteps;
+                        gridsDiv.innerHTML =
+                            '<div style="flex: 1;">' + cachTable(lruRes.stepSnapshots[step], 'LRU', stepText) + '</div>' +
+                            '<div style="flex: 1;">' + cachTable(mruRes.stepSnapshots[step], 'MRU', stepText) + '</div>';
+                        stepLabel.innerText = stepText;
+
+                        lruLogDiv.innerHTML += lruRes.simLog[step] + '<br>';
+                        mruLogDiv.innerHTML += mruRes.simLog[step] + '<br>';
+                        lruLogDiv.scrollTop = lruLogDiv.scrollHeight;
+                        mruLogDiv.scrollTop = mruLogDiv.scrollHeight;
+
+                        step++;
+                        if (step >= totalSteps) {
+                            clearInterval(animTimer);
+                            animTimer = null;
+                        }
+                    }, ANIM_DELAY_MS);
+                }
             });
         });
     </script>
