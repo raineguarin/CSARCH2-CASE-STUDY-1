@@ -1,4 +1,4 @@
-## The following table summarizes the results of the 4-Way BSA LRU (Least Recently Used) vs 4-Way BSA MRU (Most Recently Used) program.
+### The following table summarizes the results of the 4-Way BSA LRU (Least Recently Used) vs 4-Way BSA MRU (Most Recently Used) program.
 
 | Test Case | Metric | LRU | MRU |
 | :--- | :--- | :--- | :--- |
