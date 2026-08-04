@@ -1,16 +1,29 @@
+# Machine 7: 4-Way BSA + LRU vs. 4-Way BSA + MRU
+
+## Specifications & Parameters
+
+| Parameter | Value |
+| :--- | :--- |
+| Associativity | 4-Way Block Set Associative (BSA) |
+| Block Size | 4 words (parameterized, power of 2, min 2) |
+| Number of Cache Blocks | 16 (parameterized, power of 2, min 4) |
+| Main Memory Size | 1024 blocks (fixed) |
+| Read Policy | Non-Load-Through and Load-Through (parameterized, both shown below) |
+| Cache Hit Time | 1 cycle |
+| Miss Penalty per Word | 10 cycles |
+| Replacement Policies Compared | LRU (Least Recently Used) vs. MRU (Most Recently Used) |
+
+The results below were produced using the parameters above. Block Size, Number of Cache Blocks, Hit Time, and Miss Penalty per Word are all adjustable in the UI; these are the values used for this run.
+
 ### The following table summarizes the results of the 4-Way BSA LRU (Least Recently Used) vs 4-Way BSA MRU (Most Recently Used) program.
 
-| Test Case | Metric | LRU | MRU |
-| :--- | :--- | :--- | :--- |
-| **Sequential (64 accesses)** | **Hit Rate** | 0.00% | 25.00% |
-| | **AMAT (Non Load-Through)** | 41.00 cycles | 31.00 cycles |
-| | **AMAT (Load-Through)** | 11.00 cycles | 8.50 cycles |
-| **Mid-Repeat (160 accesses)** | **Hit Rate** | 10.00% | 42.50% |
-| | **AMAT (Non Load-Through)** | 37.00 cycles | 24.00 cycles |
-| | **AMAT (Load-Through)** | 10.00 cycles | 6.75 cycles |
-| **Random (64 accesses)** | **Hit Rate** | 1.56% | 1.56% |
-| | **AMAT (Non Load-Through)** | 40.38 cycles | 40.38 cycles |
-| | **AMAT (Load-Through)** | 10.84 cycles | 10.84 cycles |
+| Test Case | Accesses | Hit Rate (LRU) | Hit Rate (MRU) | AMAT Non-LT (LRU) | AMAT Non-LT (MRU) | AMAT LT (LRU) | AMAT LT (MRU) |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| Sequential | 64 | 0.00% | 25.00% | 41.00 | 31.00 | 11.00 | 8.50 |
+| Mid-Repeat | 160 | 10.00% | 42.50% | 37.00 | 24.00 | 10.00 | 6.75 |
+| Random | 64 | 1.56% | 1.56% | 40.38 | 40.38 | 10.84 | 10.84 |
+
+*AMAT values are in cycles. Non-LT = Non-Load-Through, LT = Load-Through.*
 
 
 ## **Observations**:
