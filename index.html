@@ -276,11 +276,22 @@
                     return;
                 }
 
+                // the sequence values here are already block numbers (0 to MEM_BLOCKS-1), not word addresses,
+                // so blockSize is not used to split them into tag/set/offset. it's only used to work out
+                // how big main memory is in words (totalWords) for capacity info and to validate the
+                // custom block numbers the user enters in the Base Sequence Pool
+                const totalWords = MEM_BLOCKS * blockSize;
+
                 let inputBlock = [];
                 if (rawInput.trim() !== '') {
                     inputBlock = rawInput.split(',').map(s => parseInt(s.trim(), 10)).filter(num => !isNaN(num));
                     if (inputBlock.length === 0) {
                         outputDiv.innerHTML = `<p style="color: #ff8888;">Please Separate Numbers with a comma</p>`;
+                        return;
+                    }
+                    const outOfRange = inputBlock.find(b => b < 0 || b >= MEM_BLOCKS);
+                    if (outOfRange !== undefined) {
+                        outputDiv.innerHTML = `<p style="color: #ff8888;">Error: Block ${outOfRange} is out of range. Valid blocks are 0 to ${MEM_BLOCKS - 1} (Main Memory has ${totalWords} words total at ${blockSize} words/block).</p>`;
                         return;
                     }
                 }
@@ -307,7 +318,8 @@
                 let outHtml = '<div style="margin-top:20px; background: rgba(0,0,0,0.3); padding: 15px; border-radius: 8px;">';
                 outHtml += '<h3>Statistical Outputs (' + sequence.length + ' Accesses)</h3>';
                 outHtml += '<p style="font-size:12px; font-weight:normal;">Miss Penalty calculated at ' + missPenalty + ' cycles.</p>';
-                
+                outHtml += '<p style="font-size:12px; font-weight:normal;">Main Memory Capacity: ' + MEM_BLOCKS + ' blocks &times; ' + blockSize + ' words/block = ' + totalWords + ' words total.</p>';
+
                 outHtml += '<table style="width:100%; color:white; text-align:center; border-collapse: collapse; margin-bottom: 20px;" border="1">';
                 outHtml += '<tr><th>Metric</th><th>LRU</th><th>MRU</th></tr>';
                 outHtml += '<tr><td>Hits</td><td>' + lruRes.hits + '</td><td>' + mruRes.hits + '</td></tr>';
