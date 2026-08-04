@@ -78,8 +78,7 @@
         <script>
             const NUM_WAYS = 4;
             const MEM_BLOCKS = 1024;
-            // i removed na the fixed HIT_TIME / MEM_PER_WORD consts, galing na sa input fields
-            // ni user yun ngayon para maadjust nila mismo sa UI
+            // i removed na the fixed HIT_TIME / MEM_PER_WORD consts so galing na sa input fields yun ngayon so they can adjust in UI
 
         function isPowerOfTwo(n) {
             return Number.isInteger(n) && n > 0 && (n & (n - 1)) === 0;
@@ -206,7 +205,7 @@
             return html;
         }
 
-        // note to self: hit dapat yung 2nd param (cost ng hit) and missPen yung 3rd (cost ng miss)
+        // note: hit dapat yung 2nd param (cost ng hit) and missPen yung 3rd (cost ng miss)
         // baliktad to dati kaya mali yung amat/total time na lumalabas
         function statOutput(res, hit, missPen) {
             let hitRate = (res.hits / res.total);
@@ -272,7 +271,6 @@
                     outputDiv.innerHTML = `<p style="color: #ff8888;">Error: Cache Blocks must be a power of 2 and at least 4.</p>`;
                     return;
                 }
-                // wag payagan mag-negative si hit time / miss penalty, wala namang sense yun
                 if (isNaN(hitTime) || hitTime < 0 || isNaN(missPenaltyPerWord) || missPenaltyPerWord < 0) {
                     outputDiv.innerHTML = `<p style="color: #ff8888;">Error: Hit Time and Miss Penalty per Word must be non-negative numbers.</p>`;
                     return;
@@ -287,9 +285,8 @@
                     }
                 }
 
-                // load-through: di na hihintayin buong block, yung salitang word lang na kailangan
-                // non-load-through: kailangan hintayin muna buong block bago maka-access kaya mas
-                // mataas siya lalo na pag malaki yung block size
+                // load-through: di na hihintayin buong block yung salitang word lang na kailangan
+                // non-load-through: need to wait the whole block bago maka-access so its much higher lalo na pag malaki yung block size
                 let missPenalty = 0;
                 if (policy === 'Non-load-through') {
                     missPenalty = hitTime + (blockSize * missPenaltyPerWord);
@@ -303,7 +300,7 @@
                 const lruRes = runSimulation('LRU', numSets, sequence);
                 const mruRes = runSimulation('MRU', numSets, sequence);
 
-                // (result, cost per hit, cost per miss) -- baliktad to dati, ayusin lagi pagkasunod
+                // (result, cost per hit, cost per miss) -- baliktad before
                 const lruStats = statOutput(lruRes, hitTime, missPenalty);
                 const mruStats = statOutput(mruRes, hitTime, missPenalty);
 
