@@ -1,12 +1,13 @@
-// FIX COMMENTS BEFORE SUBMITTING FINAL!
 
+<! Html section !>
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4-Way BSA LRU vs MRU</title>
-    <style>
+    <! Simple CSS !>
+    <style>     
         body {
             background-color: gray;
             font-family: Helvetica, sans-serif;
@@ -71,22 +72,20 @@
             </label>
 
             <div class="Output">
-                <! this is where the visual and statistical output will be placed !>
+
             </div>
         </div>
     </section>
 
-    <!-- this is the test js right now, change it if it's wrong -->
+    <!-- Actual cache memory logic  -->
     <script>
         const NUM_WAYS = 4;
         const MEM_BLOCKS = 1024;
-        // removed the fixed HIT_TIME / MEM_PER_WORD constants they come from the input fields so the user can adjust them in the UI
-
+  
         function isPowerOfTwo(n) {
             return Number.isInteger(n) && n > 0 && (n & (n - 1)) === 0;
         }
 
-        // fixed seed so the random test case gives the same sequence every time it's run with the same settings
         const RANDOM_SEED = 42;
 
         // small seeded random number generator (mulberry32), returns a function that gives numbers between 0 and 1
@@ -154,6 +153,7 @@
             return seq;
         }
 
+        //Creates the cache table
         function createCache(numSets) {
             const sets = [];
             for (let s = 0; s < numSets; s++) {
@@ -166,6 +166,7 @@
             return sets;
         }
 
+        //Simulates the lru/mru cache algorithm 
         function runSimulation(policyType, numSets, sequence) {
             const cache = createCache(numSets);
             let hits = 0;
@@ -216,24 +217,39 @@
         function cachTable(cache, title, subtitle) {
             subtitle = subtitle || 'Final Memory Snapshot';
             let html = '<h4>' + title + ' - ' + subtitle + '</h4>';
-            html += `<table style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size:11px;" border="1">`;
-            html += `<tr><th>Set Index</th><th>Way 0</th><th>Way 1</th><th>Way 2</th><th>Way 3</th></tr>`;
+            html += `<table style="width:100%; border-collapse: collapse; margin-bottom: 20px; font-size:12px;" border="1">`;
+            html += `<tr style="background-color: #444;"><th>Set Index</th><th>Way 0</th><th>Way 1</th><th>Way 2</th><th>Way 3</th></tr>`;
             cache.forEach((set, i) => {
-                // figure out which way in this set was used longest ago (LRU) and most recently (MRU),
-                // so we can mark them in the grid
                 const validWays = set.filter(w => w.valid);
-                const oldestWay = validWays.length ? validWays.reduce((min, w) => w.lastUsed < min.lastUsed ? w : min, validWays[0]) : null;
-                const newestWay = validWays.length ? validWays.reduce((max, w) => w.lastUsed > max.lastUsed ? w : max, validWays[0]) : null;
 
-                html += `<tr><td>${i}</td>`;
+                // Only calculate the specific eviction target for the policy of the current table
+                let evictionTarget = null;
+                if (validWays.length > 0) {
+                    if (title === 'LRU') {
+                        evictionTarget = validWays.reduce((min, w) => w.lastUsed < min.lastUsed ? w : min, validWays[0]);
+                    } else if (title === 'MRU') {
+                        evictionTarget = validWays.reduce((max, w) => w.lastUsed > max.lastUsed ? w : max, validWays[0]);
+                    }
+                }
+
+                html += `<tr><td style="background-color: #444; font-weight:bold;">${i}</td>`;
                 set.forEach(way => {
                     if (!way.valid) {
-                        html += `<td>Empty<br>Valid: 0</td>`;
+                        html += `<td style="color: #777; font-style: italic; padding: 8px;">Empty</td>`;
                     } else {
+                        let isTarget = (way === evictionTarget);
+                        let cellStyle = 'padding: 8px; ';
                         let marker = '';
-                        if (way === oldestWay) marker += ' <span style="color:#ff8888;">[LRU]</span>';
-                        if (way === newestWay) marker += ' <span style="color:#88ff88;">[MRU]</span>';
-                        html += `<td>Blk ${way.block}<br>Valid: 1, Tag: ${way.tag}${marker}</td>`;
+
+                        // Apply visual highlighting to the targeted eviction block
+                        if (isTarget) {
+                            let color = title === 'LRU' ? '#ff8888' : '#88ff88';
+                            let bgColor = title === 'LRU' ? 'rgba(255, 136, 136, 0.15)' : 'rgba(136, 255, 136, 0.15)';
+                            cellStyle += `background-color: ${bgColor}; border: 2px solid ${color};`;
+                            marker = `<br><span style="color:${color}; font-size: 10px; font-weight: bold;">[Next Eviction]</span>`;
+                        }
+
+                        html += `<td style="${cellStyle}">Blk ${way.block}<br><span style="font-size:10px; font-weight:normal;">Tag: ${way.tag}</span>${marker}</td>`;
                     }
                 });
                 html += `</tr>`;
@@ -258,6 +274,7 @@
             };
         }
 
+        //all succeeding js is for user input and output, only minor logic beyond this line
         document.addEventListener('DOMContentLoaded', () => {
             const configDiv = document.querySelector('.config');
             let outputDiv = document.querySelector('.Output') || document.querySelector('#output');
