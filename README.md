@@ -2,8 +2,7 @@ The following table summarizes the results of the 4-Way BSA LRU (Least Recently 
 
 |   Sequential (64 accesses)  |
 | -------------- |
-|  LRU    |  MRU  |
-| -------|------ |
+|  LRU   |  MRU  |
 | Hit Rate: 0.00%  | Hit Rate: 25.00%    |
 | AMAT (Non Load-Through):  41.00 cycles    | AMAT (Non Load-Through):  31.00 cycles   |
 | AMAT (Load-Through):  11.00 cycles  | AMAT (Load-Through):  8.50 cycle |
@@ -11,7 +10,6 @@ The following table summarizes the results of the 4-Way BSA LRU (Least Recently 
 |     Mid-Repeat (160 accesses)   |
 | -------------- |
 |  LRU    |  MRU  |
-| -------|------  |
 | Hit Rate: 10.00%   | Hit Rate: 42.50%     |
 | AMAT (Non Load-Through):  37.00 cycles    | AMAT (Non Load-Through):  24.00 cycles   |
 | AMAT (Load-Through):  10.00 cycles   | AMAT (Load-Through):  6.75 cycles        |
@@ -19,7 +17,6 @@ The following table summarizes the results of the 4-Way BSA LRU (Least Recently 
 |    Random (64 accesses)  | 
 | -------------- |
 | LRU    |    MRU     |
-| ---------|-------- |
 | Hit Rate: 10.00%    | Hit Rate: 42.50%  |
 | AMAT (Non Load-Through):  37.00 cycles    | AMAT (Non Load-Through):  24.00 cycles   |
 | AMAT (Load-Through):  10.00 cycles        | AMAT (Load-Through):  6.75 cycles        |
