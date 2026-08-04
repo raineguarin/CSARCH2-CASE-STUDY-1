@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang ="en">
-<head>  
+<html lang="en">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>4-Way BSA LRU vs MRU</title>
     <style>
-        body{
+        body {
             background-color: gray;
             font-family: Helvetica, sans-serif;
             text-align: center;
@@ -15,25 +15,22 @@
 
         .config input[type="number"],
         .config select {
-            border: 3px solid #555555; 
+            border: 3px solid #555555;
             border-radius: 12px;
-            width: 200px;      
-            padding: 6px 7px;           
-           
-            outline: none;               
-            background-color: #ffffff;   
-            box-sizing: border-box;  
+            width: 200px;
+            padding: 6px 7px;
+            outline: none;
+            background-color: #ffffff;
+            box-sizing: border-box;
             transition: border-color 0.2s ease, box-shadow 0.2s;
-            
             text-align: center;
             font-size: 14px;
             font-family: Helvetica, sans-serif;
         }
-
     </style>
-</head>    
+</head>
 <body>
-    <header> 
+    <header>
         <h1>4-Way BSA: LRU vs MRU</h1>
     </header>
 
@@ -45,47 +42,43 @@
             <br><br>
             <label>Number of Cache Blocks: <br> <input type="number" id="cacheBlocks" value="16"></label>
             <br><br>
-            <label>Read Policy: <br> <select id="policy">
-                <option value="Non-load-through">Non-Load-Through</option>
-                <option value="Load-through">Load-Through</option>
-            </select>
-            <br><br>
+            <label>Read Policy: <br>
+                <select id="policy">
+                    <option value="Non-load-through">Non-Load-Through</option>
+                    <option value="Load-through">Load-Through</option>
+                </select>
             </label>
+            <br><br>
             <label>Cache Hit Time (cycles): <br> <input type="number" id="hitTime" value="1"></label>
             <br><br>
             <label>Miss Penalty per Word (cycles): <br> <input type="number" id="missPenaltyPerWord" value="10"></label>
             <br><br>
             <label> Test Cases <br>
                 <select id="testCases">
-                        <option value="sequential">Sequential Sequence</option>
-                        <option value="mid-repeat">Mid-Repeat Sequence</option>
-                        <option value="random">Random Sequence</option>
+                    <option value="sequential">Sequential Sequence</option>
+                    <option value="mid-repeat">Mid-Repeat Sequence</option>
+                    <option value="random">Random Sequence</option>
                 </select>
             </label>
             <br><br>
             <label> View Mode <br>
                 <select id="viewMode">
-                        <option value="final">Final Snapshot Only</option>
-                        <option value="animated">Step-by-Step Animated</option>
+                    <option value="final">Final Snapshot Only</option>
+                    <option value="animated">Step-by-Step Animated</option>
                 </select>
             </label>
 
             <div class="Output">
                 <! this is where the visual and statistical output will be placed !>
             </div>
-
-
         </div>
     </section>
 
-</body>
-</html>
-
-        <!-- this is the test js right now, change it if it's wrong -->
-        <script>
-            const NUM_WAYS = 4;
-            const MEM_BLOCKS = 1024;
-            // removed the fixed HIT_TIME / MEM_PER_WORD constants, they now come from the input fields so the user can adjust them in the UI
+    <!-- this is the test js right now, change it if it's wrong -->
+    <script>
+        const NUM_WAYS = 4;
+        const MEM_BLOCKS = 1024;
+        // removed the fixed HIT_TIME / MEM_PER_WORD constants they come from the input fields so the user can adjust them in the UI
 
         function isPowerOfTwo(n) {
             return Number.isInteger(n) && n > 0 && (n & (n - 1)) === 0;
@@ -153,11 +146,10 @@
                     } else {
                         seq.push(Math.floor(rng() * MEM_BLOCKS));
                     }
+                }
             }
-        }
 
-        return seq;
-
+            return seq;
         }
 
         function createCache(numSets) {
@@ -165,18 +157,18 @@
             for (let s = 0; s < numSets; s++) {
                 const ways = [];
                 for (let w = 0; w < NUM_WAYS; w++) {
-                    ways.push({ valid: false, tag: null, lastUsed: -1 ,block: null});
+                    ways.push({ valid: false, tag: null, lastUsed: -1, block: null });
                 }
                 sets.push(ways);
+            }
+            return sets;
         }
-        return sets;
-    }
 
-    function runSimulation(policyType, numSets, sequence) {
+        function runSimulation(policyType, numSets, sequence) {
             const cache = createCache(numSets);
             let hits = 0;
             let misses = 0;
-            const simLog =[];
+            const simLog = [];
             // a copy of the whole cache after every access, used to play back the simulation step by step
             const stepSnapshots = [];
 
@@ -201,7 +193,7 @@
                         } else {
                             targetWay = set.reduce((max, w) => w.lastUsed > max.lastUsed ? w : max, set[0]);
                         }
-                    actLog = 'MISS (Evicted Block ' + targetWay.block + ' from Set ' + setIndex + ')';
+                        actLog = 'MISS (Evicted Block ' + targetWay.block + ' from Set ' + setIndex + ')';
                     } else {
                         actLog = 'MISS (Placed in empty slot in Set ' + setIndex + ')';
                     }
@@ -273,7 +265,7 @@
             baseSeqLabel.innerHTML = 'Base Sequence Pool: <br> <input type="text" id="baseSequence" placeholder="e.g. 10, 20, 30, 40">';
             baseSeqLabel.style.display = 'block';
             baseSeqLabel.style.marginBottom = '15px';
-            
+
             const baseSeqInput = baseSeqLabel.querySelector('input');
             baseSeqInput.style.border = '3px solid #555555';
             baseSeqInput.style.borderRadius = '12px';
